@@ -1,8 +1,11 @@
 import { useEffect, useRef } from "react";
 import "./App.css";
+import { io } from "socket.io-client";
 
 function App() {
   const videoRef = useRef(null);
+  // const socket = io("http://localhost:4000");
+  const socket = io("ws://localhost:4000");
   useEffect(() => {
     navigator.mediaDevices
       .getUserMedia({ video: true, audio: true })
@@ -18,8 +21,8 @@ function App() {
 
         mediaRecorder.ondataavailable = async function (event) {
           if (event.data && event.data.size > 0) {
-            reader.readAsDataURL(event.data);
-            // console.log({ data: URL.createObjectURL(event.data) });
+            // reader.readAsDataURL(event.data);
+            socket.emit("stream", event.data);
           }
         };
         mediaRecorder.start(2500); // slice time interval
