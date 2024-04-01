@@ -18,8 +18,9 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log({ msg: "Disconnected!" });
   });
-  socket.on("stream", (stream) => {
+  socket.on("client:stream", (stream) => {
     // console.log({ stream });
+    socket.emit("server:stream", stream);
   });
 });
 

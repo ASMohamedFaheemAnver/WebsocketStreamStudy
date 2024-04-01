@@ -22,7 +22,7 @@ function App() {
         mediaRecorder.ondataavailable = async function (event) {
           if (event.data && event.data.size > 0) {
             // reader.readAsDataURL(event.data);
-            socket.emit("stream", event.data);
+            socket.emit("client:stream", event.data);
           }
         };
         mediaRecorder.start(2500); // slice time interval
@@ -30,6 +30,11 @@ function App() {
       .catch((e) => {
         console.log({ component: App.name, e });
       });
+    socket.on("server:stream", (data) => {
+      const blob = new Blob([data]);
+      videoRef.current.src = URL.createObjectURL(blob);
+      console.log({ blob });
+    });
   }, []);
   return (
     <div>
