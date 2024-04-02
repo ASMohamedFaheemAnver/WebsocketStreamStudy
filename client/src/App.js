@@ -5,31 +5,41 @@ import { io } from "socket.io-client";
 function App() {
   const videoRef = useRef(null);
   // const socket = io("http://localhost:4000");
-  const socket = io("ws://localhost:4000");
-  useEffect(() => {
-    navigator.mediaDevices
-      .getUserMedia({ video: true, audio: true })
-      .then((stream) => {
-        console.log({ stream });
-        // videoRef.current.srcObject = stream;
-        const mediaRecorder = new MediaRecorder(stream);
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const data = e.target.result; // ~1.1MB if slice time is 2500ms
-          console.log({ data });
-        };
+  const socketRef = useRef();
 
-        mediaRecorder.ondataavailable = async function (event) {
-          if (event.data && event.data.size > 0) {
-            // reader.readAsDataURL(event.data);
-            socket.emit("client:stream", event.data);
-          }
-        };
-        mediaRecorder.start(2500); // slice time interval
-      })
-      .catch((e) => {
-        console.log({ component: App.name, e });
-      });
+  useEffect(() => {
+    socketRef.current = io("ws://localhost:4000");
+    return () => socketRef.current.close();
+  }, []);
+
+  useEffect(() => {
+    // Why getUserMedia is triggering 2 times on first render which causing it to send 2 streams of data
+    const timeout = setTimeout(() => {
+      navigator.mediaDevices
+        .getUserMedia({ video: true, audio: true })
+        .then((stream) => {
+          console.log({ stream });
+          // videoRef.current.srcObject = stream;
+          const mediaRecorder = new MediaRecorder(stream);
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const data = e.target.result; // ~1.1MB if slice time is 2500ms
+            console.log({ data });
+          };
+
+          mediaRecorder.ondataavailable = async function (event) {
+            if (event.data && event.data.size > 0) {
+              // reader.readAsDataURL(event.data);
+              socketRef.current.emit("client:stream", event.data);
+            }
+          };
+          mediaRecorder.start(500); // slice time interval
+        })
+        .catch((e) => {
+          console.log({ component: App.name, e });
+        });
+    }, 500);
+    return () => clearTimeout(timeout);
   }, []);
 
   useEffect(() => {
@@ -56,7 +66,7 @@ function App() {
       const sourceBuffer = mediaSource.addSourceBuffer(
         'video/webm; codecs="vp8, opus"'
       );
-      socket.on("server:stream", (stream) => {
+      socketRef.current.on("server:stream", (stream) => {
         console.log({
           msg: "server:stream",
         });
@@ -77,12 +87,6 @@ function App() {
 
     return () => {
       mediaSource.removeEventListener("sourceopen", onMediaSourceOpen);
-      // This causing issue
-      // sourceBuffer.removeEventListener(
-      //   "updateend",
-      //   onSourceBufferUpdateEnd
-      // );
-      // sourceBuffer.removeEventListener("error", onSourceBufferError);
     };
   }, []);
 
