@@ -1,0 +1,2 @@
+# chrome://flags -> insecure origins treated as secure -> add http://192.168.1.100:3000/ and relaunch
+# https://stackoverflow.com/questions/67663961/cannot-read-property-getusermedia-of-undefined-over-https

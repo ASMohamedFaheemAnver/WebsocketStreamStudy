@@ -20,7 +20,7 @@ io.on("connection", (socket) => {
   });
   socket.on("client:stream", (stream) => {
     // console.log({ stream });
-    socket.emit("server:stream", stream);
+    io.emit("server:stream", stream);
   });
 });
 
