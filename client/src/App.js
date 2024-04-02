@@ -5,12 +5,7 @@ import { io } from "socket.io-client";
 function App() {
   const videoRef = useRef(null);
   // const socket = io("http://localhost:4000");
-  const socketRef = useRef();
-
-  useEffect(() => {
-    socketRef.current = io("ws://localhost:4000");
-    return () => socketRef.current.close();
-  }, []);
+  const socket = io("ws://localhost:4000");
 
   useEffect(() => {
     // Why getUserMedia is triggering 2 times on first render which causing it to send 2 streams of data
@@ -30,7 +25,7 @@ function App() {
           mediaRecorder.ondataavailable = async function (event) {
             if (event.data && event.data.size > 0) {
               // reader.readAsDataURL(event.data);
-              socketRef.current.emit("client:stream", event.data);
+              socket.emit("client:stream", event.data);
             }
           };
           mediaRecorder.start(500); // slice time interval
@@ -66,7 +61,7 @@ function App() {
       const sourceBuffer = mediaSource.addSourceBuffer(
         'video/webm; codecs="vp8, opus"'
       );
-      socketRef.current.on("server:stream", (stream) => {
+      socket.on("server:stream", (stream) => {
         console.log({
           msg: "server:stream",
         });
@@ -74,7 +69,10 @@ function App() {
           console.log({ msg: "appending buffer" });
           sourceBuffer.appendBuffer(stream);
         } else {
-          console.log({ readyState: mediaSource.readyState });
+          console.log({
+            readyState: mediaSource.readyState,
+            updating: sourceBuffer.updating,
+          });
         }
       });
       // When the SourceBuffer has enough data to start playing
