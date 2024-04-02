@@ -30,15 +30,74 @@ function App() {
       .catch((e) => {
         console.log({ component: App.name, e });
       });
-    socket.on("server:stream", (data) => {
-      const blob = new Blob([data]);
-      videoRef.current.src = URL.createObjectURL(blob);
-      console.log({ blob });
-    });
   }, []);
+
+  const mediaSourceRef = useRef(new MediaSource());
+  useEffect(() => {
+    videoRef.current.src = URL.createObjectURL(mediaSourceRef.current);
+
+    const onSourceBufferUpdateEnd = () => {
+      console.log({ msg: "updateend" });
+      // If the video element is not already playing, start playing it
+      if (videoRef.current.paused) {
+        console.log({
+          msg: "pushed player is restarting/playing",
+        });
+        videoRef.current.play();
+      }
+    };
+    const onSourceBufferError = (event) => {
+      console.error({ msg: "error", event });
+    };
+    const onMediaSourceOpen = () => {
+      console.log({
+        msg: "source open",
+      }); // Source happening 2 times in debugging mode
+      // Create a new SourceBuffer
+      const sourceBuffer = mediaSourceRef.current.addSourceBuffer(
+        'video/webm; codecs="vp8, opus"'
+      );
+      socket.on("server:stream", (stream) => {
+        console.log({
+          msg: "server:stream",
+        });
+        if (
+          mediaSourceRef.current.readyState === "open" &&
+          !sourceBuffer.updating
+        ) {
+          console.log({ msg: "appending buffer" });
+          sourceBuffer.appendBuffer(stream);
+        } else {
+          console.log({ readyState: mediaSourceRef.current.readyState });
+        }
+      });
+      // When the SourceBuffer has enough data to start playing
+      sourceBuffer.addEventListener("updateend", onSourceBufferUpdateEnd);
+      sourceBuffer.addEventListener("error", onSourceBufferError);
+    };
+
+    // When the mediaSourceRef.current is successfully opened
+    mediaSourceRef.current.addEventListener("sourceopen", onMediaSourceOpen);
+
+    return () => {
+      mediaSourceRef.current.removeEventListener(
+        "sourceopen",
+        onMediaSourceOpen
+      );
+
+      // This causing issue
+      // sourceBuffer.removeEventListener(
+      //   "updateend",
+      //   onSourceBufferUpdateEnd
+      // );
+      // sourceBuffer.removeEventListener("error", onSourceBufferError);
+    };
+  }, []);
+
   return (
     <div>
       <video ref={videoRef} autoPlay />
+      <p>fafafafaf</p>
     </div>
   );
 }
