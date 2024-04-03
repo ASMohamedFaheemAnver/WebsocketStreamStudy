@@ -15,7 +15,9 @@ function App() {
         .then((stream) => {
           console.log({ stream });
           // videoRef.current.srcObject = stream;
-          const mediaRecorder = new MediaRecorder(stream);
+          const mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'video/webm; codecs="vp8, opus"',
+          });
           const reader = new FileReader();
           reader.onload = (e) => {
             const data = e.target.result; // ~1.1MB if slice time is 2500ms
